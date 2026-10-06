@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>调节效应绘图工具</title>
+<style>
+  :root{
+    --ink:#1a2332; --sub:#5a6577; --line:#d9dee7; --bg:#f4f6fa; --card:#ffffff;
+    --accent:#2456a6; --accent2:#c0392b; --yellow:#fff4cc; --yellow-br:#e8c96a;
+    --ok:#1e7d46; --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+       background:var(--bg); color:var(--ink); line-height:1.55; padding:20px;}
+  header{max-width:1320px; margin:0 auto 14px;}
+  header h1{font-size:22px; letter-spacing:.5px;}
+  header .sub{color:var(--sub); font-size:13px; margin-top:4px;}
+  .credit{font-size:12px; color:var(--sub); margin-top:8px; padding:8px 12px;
+          background:#eaf1fb; border-left:3px solid var(--accent); border-radius:0 6px 6px 0;}
+  .credit a{color:var(--accent); text-decoration:none;} .credit a:hover{text-decoration:underline;}
+  .upmark{font-size:12px; color:var(--sub); margin-top:6px;}
+  .upmark a{color:#fb7299; font-weight:600; text-decoration:none;}
+  .upmark a:hover{text-decoration:underline;}
+  .cite{font-size:12px; color:var(--sub); margin-top:6px; padding-left:8px 12px;}
+  .tabs{max-width:1320px; margin:0 auto 14px; display:flex; gap:6px; flex-wrap:wrap;}
+  .tab{padding:8px 14px; border:1px solid var(--line); border-bottom:none; background:#e9edf4;
+       border-radius:8px 8px 0 0; cursor:pointer; font-size:13px; color:var(--sub); user-select:none;}
+  .tab.active{background:var(--card); color:var(--accent); font-weight:700; border-color:#c3ccdb; position:relative;}
+  .tab.active::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--card);}
+  main{max-width:1320px; margin:0 auto; display:grid; grid-template-columns:400px 1fr; gap:16px; align-items:start;}
+  @media(max-width:1020px){ main{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px;
+        box-shadow:0 1px 3px rgba(20,30,50,.05);}
+  .card h2{font-size:15px; margin-bottom:4px; padding-bottom:8px; border-bottom:2px solid var(--accent); display:inline-block;}
+  .card h2.warn{border-color:#b98200;}
+  .note{font-size:12px; color:var(--sub); margin:6px 0 12px;}
+  section.block{margin-bottom:18px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px 12px;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px 12px;}
+  .field{display:flex; flex-direction:column;}
+  .field label{font-size:12px; color:var(--sub); margin-bottom:3px;}
+  .field input,.field textarea,.field select{padding:7px 9px; border:1px solid #cfd6e1; border-radius:6px;
+      font-size:14px; width:100%; background:#fff; font-family:var(--mono);}
+  .field textarea{font-family:inherit; resize:vertical; min-height:52px; font-size:13px;}
+  .field input.yellow{background:var(--yellow); border-color:var(--yellow-br);}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid rgba(36,86,166,.35); border-color:var(--accent);}
+  .chk{display:flex; align-items:center; gap:8px; font-size:13px; margin-top:8px;}
+  .chk input{width:auto;}
+  .btns{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  button{cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:#fff;
+         padding:8px 14px; border-radius:6px; font-size:13px;}
+  button.ghost{background:#fff; color:var(--accent);}
+  button:hover{filter:brightness(1.08);}
+  .themes{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
+  .theme{border:2px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; background:#fff;}
+  .theme.sel{border-color:var(--accent); background:#f2f7ff;}
+  .theme .tn{font-size:12.5px; font-weight:600; margin-bottom:5px;}
+  .theme .sw{display:flex; gap:6px; align-items:center;}
+  .sw i{display:inline-block; width:26px; height:0; border-top:3px solid; border-radius:2px;}
+  .sw i.dash{border-top-style:dashed;}
+  .sw b{font-size:11px; color:var(--sub); font-weight:400;}
+  .plot-wrap{display:flex; flex-direction:column; gap:14px;}
+  #plotBox svg{width:100%; height:auto; display:block;}
+  .tblwrap{overflow-x:auto;}
+  .tbl{border-collapse:collapse; font-size:12.5px; margin-top:6px; min-width:100%;}
+  .tbl th,.tbl td{border:1px solid var(--line); padding:5px 8px; text-align:center; white-space:nowrap;}
+  .tbl th{background:#f0f3f9; font-weight:600;}
+  .tbl td.l{text-align:left;}
+  .mono{font-family:var(--mono); font-size:12.5px;}
+  .sig{color:var(--ok); font-weight:700;} .ns{color:var(--accent2);}
+  .dl{display:flex; gap:8px; margin-top:4px; flex-wrap:wrap;}
+  details{margin-top:6px; font-size:13px;}
+  details summary{cursor:pointer; color:var(--accent); font-weight:600; margin-bottom:6px;}
+  .formula{background:#f7f9fc; border:1px dashed var(--line); border-radius:8px; padding:10px 14px;
+           font-family:var(--mono); font-size:12.5px; color:#33415c; margin-top:6px; white-space:pre-wrap;}
+  footer{max-width:1320px; margin:18px auto 0; font-size:12px; color:var(--sub);
+         border-top:1px solid var(--line); padding-top:12px;}
+  footer a{color:var(--accent);}
+  .pill{display:inline-block; background:#eef3fb; border:1px solid #c9d8f0; color:var(--accent);
+        border-radius:999px; padding:1px 10px; font-size:11px; margin-left:6px;}
+  .blk{display:none;} .blk.on{display:block;}
+  .seg{border:1px solid var(--line);background:#fff;color:var(--sub);padding:6px 12px;border-radius:6px;font-size:12.5px;}
+  .seg.sel{background:var(--accent);border-color:var(--accent);color:#fff;}
+  pre.stata{background:#f7f9fc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12.5px;overflow-x:auto;line-height:1.55;margin:0;}
+  h3.subh{font-size:13px; margin:12px 0 6px; color:#33415c;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>调节效应绘图工具 <span class="pill">v3.2</span></h1>
+  <div class="sub">Interaction effects plots</div>
+  <div class="credit">
+    模板来源：<strong>Jeremy Dawson</strong>（University of Bradford）
+    <a href="https://www.jeremydawson.co.uk/home" target="_blank" rel="noopener">https://www.jeremydawson.co.uk/home</a>
+    <div class="cite">引用：Dawson, J. F. (2025). Interpreting interaction effects. Retrieved <span id="citeDate"></span>, from https://www.jeremydawson.com/slopes</div>
+  </div>
+  <div class="upmark">工具开发：<strong>Bilibili@<a href="https://space.bilibili.com/40545247" target="_blank" rel="noopener">拿铁一定要加冰</a></strong></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-t="A">A · 线性交互</div>
+  <div class="tab" data-t="B">B · Logistic</div>
+  <div class="tab" data-t="C">C · Poisson/对数链接</div>
+  <div class="tab" data-t="D">D · 二次×调节</div>
+  <div class="tab" data-t="E">E · 三阶线性</div>
+  <div class="tab" data-t="F">F · 三阶Logistic</div>
+  <div class="tab" data-t="G">G · 三阶Poisson</div>
+  <div class="tab" data-t="H">H · 二次三阶交互</div>
+  <div class="tab" data-t="I">I · 线性×二次调节</div>
+  <div class="tab" data-t="J">J · 二次曲线</div>
+</div>
+
+<main>
+  <!-- ================= 左栏 ================= -->
+  <div class="card">
+    <section class="block">
+      <h2>① 变量名</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>自变量 X（Var 1）</label><input id="nameX" class="yellow" value="IV"></div>
+        <div class="field"><label>调节变量 W（Var 2）</label><input id="nameW" class="yellow" value="Moderator"></div>
+        <div class="field" id="fwName"><label>第二调节 V3（仅三阶模板）</label><input id="nameV3" class="yellow" value="var 3"></div>
+        <div class="field"><label>因变量 Y（轴标题）</label><input id="nameY" class="yellow" value="Job satisfaction"></div>
+      </div>
+    </section>
+
+    <!-- A -->
+    <section class="block blk on" id="blkA">
+      <h2>② 回归系数（线性，必填）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Ab1" class="yellow" value="0.6"></div>
+        <div class="field"><label>W 系数 b₂</label><input id="Ab2" class="yellow" value="0.4"></div>
+        <div class="field"><label>交互 X×W 系数 b₃</label><input id="Ab3" class="yellow" value="-0.8"></div>
+        <div class="field"><label>截距 b₀</label><input id="Ab0" class="yellow" value="3"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X / W 均值与 SD（选填）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="AmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="AsX" class="yellow" value="1"></div>
+        <div class="field"><label>W 均值</label><input id="AmW" class="yellow" value="0"></div>
+        <div class="field"><label>W 的 SD</label><input id="AsW" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ 指定绘图取值（选填，优先于③）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 低值</label><input id="AxLo" class="yellow" placeholder="自动"></div>
+        <div class="field"><label>X 高值</label><input id="AxHi" class="yellow" placeholder="自动"></div>
+        <div class="field"><label>W 低值</label><input id="AwLo" class="yellow" value="0"></div>
+        <div class="field"><label>W 高值</label><input id="AwHi" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">⑤ 简单斜率检验（选填）</h2>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>Var(b₁)</label><input id="Av1" class="yellow" value="0.002"></div>
+        <div class="field"><label>Var(b₃)</label><input id="Av3" class="yellow" value="0.004"></div>
+        <div class="field"><label>Cov(b₁,b₃)</label><input id="Ac13" class="yellow" value="0.003"></div>
+        <div class="field"><label>样本量 N</label><input id="AN" class="yellow" value="150"></div>
+        <div class="field" style="grid-column:2/4;"><label>控制变量数 k（df=N−k−1）</label><input id="Ak" class="yellow" value="3"></div>
+      </div>
+    </section>
+
+    <!-- B -->
+    <section class="block blk" id="blkB">
+      <h2>② Logit 回归系数（必填）</h2>
+      <p class="note">η = b₀ + b₁X + b₂W + b₃X·W，p = 1/(1+e<sup>−η</sup>)。控制变量建议先中心化。</p>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Bb1" class="yellow" value="-0.4"></div>
+        <div class="field"><label>W 系数 b₂</label><input id="Bb2" class="yellow" value="0.3"></div>
+        <div class="field"><label>交互 X×W 系数 b₃</label><input id="Bb3" class="yellow" value="0.5"></div>
+        <div class="field"><label>常数 b₀</label><input id="Bb0" class="yellow" value="-1.2"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X 的均值与 SD（决定曲线范围）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="BmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="BsX" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ W 的绘图取值（两条线）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>W 低值</label><input id="BwLo" class="yellow" value="-1"></div>
+        <div class="field"><label>W 高值</label><input id="BwHi" class="yellow" value="1"></div>
+      </div>
+    </section>
+
+    <!-- C -->
+    <section class="block blk" id="blkC">
+      <h2>② Poisson / 对数链接系数（必填）</h2>
+      <p class="note">log(E(Y)) = b₀ + b₁X + b₂W + b₃X·W，E(Y) = e<sup>η</sup>。适用于任何标准对数链接回归。</p>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Cb1" class="yellow" value="1.2"></div>
+        <div class="field"><label>W 系数 b₂</label><input id="Cb2" class="yellow" value="0.2"></div>
+        <div class="field"><label>交互 X×W 系数 b₃</label><input id="Cb3" class="yellow" value="-0.8"></div>
+        <div class="field"><label>常数 b₀</label><input id="Cb0" class="yellow" value="1.3"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X 的均值与 SD（决定曲线范围）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="CmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="CsX" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ W 的绘图取值（两条线）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>W 低值</label><input id="CwLo" class="yellow" value="-1"></div>
+        <div class="field"><label>W 高值</label><input id="CwHi" class="yellow" value="1"></div>
+      </div>
+    </section>
+
+    <!-- D -->
+    <section class="block blk" id="blkD">
+      <h2>② 回归系数（二次×调节，必填）</h2>
+      <p class="note">Y = b₀ + b₁X + b₂X² + b₃W + b₄X·W + b₅X²·W。调节为二分类时，设 W=0/1 并把③中 W 的 SD 填 0.5（均值 0.5）。</p>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Db1" class="yellow" value="0.6"></div>
+        <div class="field"><label>X² 系数 b₂</label><input id="Db2" class="yellow" value="0.3"></div>
+        <div class="field"><label>W 系数 b₃</label><input id="Db3" class="yellow" value="0.4"></div>
+        <div class="field"><label>交互 X×W 系数 b₄</label><input id="Db4" class="yellow" value="-0.3"></div>
+        <div class="field"><label>交互 X²×W 系数 b₅</label><input id="Db5" class="yellow" value="0.08"></div>
+        <div class="field"><label>截距 b₀</label><input id="Db0" class="yellow" value="3"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X / W 的均值与 SD</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="DmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="DsX" class="yellow" value="1"></div>
+        <div class="field"><label>W 均值</label><input id="DmW" class="yellow" value="0"></div>
+        <div class="field"><label>W 的 SD</label><input id="DsW" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ 绘图设置</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 范围：均值 ± __ SD</label><input id="Drange" class="yellow" value="1.5"></div>
+        <div class="field"><label>W 取值（低 , 高）</label><input id="DwVals" class="yellow" placeholder="默认 W均值±SD"></div>
+      </div>
+    </section>
+
+    <!-- E: 3-way linear -->
+    <section class="block blk" id="blkE">
+      <h2>② 回归系数（三阶线性，必填）</h2>
+      <div class="note">Y = b₀ + b₁X + b₂Z + b₃V + b₄X·Z + b₅X·V + b₆Z·V + b₇X·Z·V（Z = Var2，V = Var3）</div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Eb1" class="yellow" value="-1.658677"></div>
+        <div class="field"><label>Z 系数 b₂</label><input id="Eb2" class="yellow" value="-2.412626"></div>
+        <div class="field"><label>V 系数 b₃</label><input id="Eb3" class="yellow" value="-0.121514"></div>
+        <div class="field"><label>X·Z 系数 b₄</label><input id="Eb4" class="yellow" value="0.787619"></div>
+        <div class="field"><label>X·V 系数 b₅</label><input id="Eb5" class="yellow" value="0.037802"></div>
+        <div class="field"><label>Z·V 系数 b₆</label><input id="Eb6" class="yellow" value="0.051915"></div>
+        <div class="field"><label>X·Z·V 系数 b₇</label><input id="Eb7" class="yellow" value="-0.01556"></div>
+        <div class="field"><label>截距 b₀</label><input id="Eb0" class="yellow" value="7.853"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ 均值与 SD（选填，留空则默认均值0/SD1）</h2>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 均值 / SD</label><input id="EmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="EsX" class="yellow" value="1"></div>
+        <div class="field"></div>
+        <div class="field"><label>Z 均值</label><input id="EmZ" class="yellow" value="0"></div>
+        <div class="field"><label>Z 的 SD</label><input id="EsZ" class="yellow" value="0.5"></div>
+        <div class="field"></div>
+        <div class="field"><label>V 均值</label><input id="EmV" class="yellow" value="0"></div>
+        <div class="field"><label>V 的 SD</label><input id="EsV" class="yellow" value="0.5"></div>
+        <div class="field"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ 绘图取值（选填，优先于③）</h2>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 低值</label><input id="ExLo" class="yellow" value="2"></div>
+        <div class="field"><label>X 高值</label><input id="ExHi" class="yellow" value="4.5"></div>
+        <div class="field"></div>
+        <div class="field"><label>Z 低值</label><input id="EzLo" class="yellow" value="2"></div>
+        <div class="field"><label>Z 高值</label><input id="EzHi" class="yellow" value="4.5"></div>
+        <div class="field"></div>
+        <div class="field"><label>V 低值</label><input id="EvLo" class="yellow" value="25"></div>
+        <div class="field"><label>V 高值</label><input id="EvHi" class="yellow" value="55"></div>
+        <div class="field"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">⑤ 斜率差与简单斜率检验（选填）</h2>
+      <div class="note">需提供 [b₁, b₄(X·Z), b₅(X·V), b₇(X·Z·V)] 的方差–协方差矩阵、N 与控制变量数 k。</div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>Var(b₁)</label><input id="EV1" class="yellow" value="0.45445103"></div>
+        <div class="field"><label>Var(b₄)</label><input id="EV4" class="yellow" value="0.0403457127"></div>
+        <div class="field"><label>Var(b₅)</label><input id="EV5" class="yellow" value="0.000250888401"></div>
+        <div class="field"><label>Var(b₇)</label><input id="EV7" class="yellow" value="0.0000224187068"></div>
+        <div class="field"><label>Cov(b₁,b₄)</label><input id="Ec14" class="yellow" value="-0.131510277"></div>
+        <div class="field"><label>Cov(b₁,b₅)</label><input id="Ec15" class="yellow" value="-0.0102042481"></div>
+        <div class="field"><label>Cov(b₁,b₇)</label><input id="Ec17" class="yellow" value="0.00295942713"></div>
+        <div class="field"><label>Cov(b₄,b₅)</label><input id="Ec45" class="yellow" value="0.00295912747"></div>
+        <div class="field"><label>Cov(b₄,b₇)</label><input id="Ec47" class="yellow" value="-0.000909303295"></div>
+        <div class="field"><label>Cov(b₅,b₇)</label><input id="Ec57" class="yellow" value="-0.000072861908"></div>
+        <div class="field"><label>样本量 N</label><input id="EN" class="yellow" value="424"></div>
+        <div class="field"><label>控制变量数 k</label><input id="Ek" class="yellow" value="0"></div>
+      </div>
+    </section>
+
+    <!-- F: 3-way logistic -->
+    <section class="block blk" id="blkF">
+      <h2>② Logit 系数（三阶，必填）</h2>
+      <div class="note">η = b₀ + b₁X + b₂Z + b₃V + b₄X·Z + b₅X·V + b₆Z·V + b₇X·Z·V，p = 1/(1+e<sup>−η</sup>)</div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Fb1" class="yellow" value="0.045"></div>
+        <div class="field"><label>Z 系数 b₂</label><input id="Fb2" class="yellow" value="-0.097"></div>
+        <div class="field"><label>V 系数 b₃</label><input id="Fb3" class="yellow" value="-0.27"></div>
+        <div class="field"><label>X·Z 系数 b₄</label><input id="Fb4" class="yellow" value="-0.214"></div>
+        <div class="field"><label>X·V 系数 b₅</label><input id="Fb5" class="yellow" value="0.359"></div>
+        <div class="field"><label>Z·V 系数 b₆</label><input id="Fb6" class="yellow" value="-0.191"></div>
+        <div class="field"><label>X·Z·V 系数 b₇</label><input id="Fb7" class="yellow" value="0.72"></div>
+        <div class="field"><label>常数 b₀</label><input id="Fb0" class="yellow" value="-1.2"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X 均值与 SD（曲线范围）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="FmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="FsX" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ Z / V 绘图取值（四条线）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>Z 低值 / 高值</label><input id="FzLo" class="yellow" value="0"></div>
+        <div class="field"><label>Z 高值</label><input id="FzHi" class="yellow" value="1"></div>
+        <div class="field"><label>V 低值</label><input id="FvLo" class="yellow" value="-1"></div>
+        <div class="field"><label>V 高值</label><input id="FvHi" class="yellow" value="1"></div>
+      </div>
+    </section>
+
+    <!-- G: 3-way poisson -->
+    <section class="block blk" id="blkG">
+      <h2>② 对数链接系数（三阶，必填）</h2>
+      <div class="note">log(E(Y)) = b₀ + b₁X + b₂Z + b₃V + b₄X·Z + b₅X·V + b₆Z·V + b₇X·Z·V，E(Y) = e<sup>η</sup></div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Gb1" class="yellow" value="0.3"></div>
+        <div class="field"><label>Z 系数 b₂</label><input id="Gb2" class="yellow" value="-1"></div>
+        <div class="field"><label>V 系数 b₃</label><input id="Gb3" class="yellow" value="0.2"></div>
+        <div class="field"><label>X·Z 系数 b₄</label><input id="Gb4" class="yellow" value="-1"></div>
+        <div class="field"><label>X·V 系数 b₅</label><input id="Gb5" class="yellow" value="0.8"></div>
+        <div class="field"><label>Z·V 系数 b₆</label><input id="Gb6" class="yellow" value="-1.2"></div>
+        <div class="field"><label>X·Z·V 系数 b₇</label><input id="Gb7" class="yellow" value="0.3"></div>
+        <div class="field"><label>常数 b₀</label><input id="Gb0" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X 均值与 SD（曲线范围）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="GmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="GsX" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ Z / V 绘图取值（四条线）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>Z 低值</label><input id="GzLo" class="yellow" value="0"></div>
+        <div class="field"><label>Z 高值</label><input id="GzHi" class="yellow" value="1"></div>
+        <div class="field"><label>V 低值</label><input id="GvLo" class="yellow" value="-1"></div>
+        <div class="field"><label>V 高值</label><input id="GvHi" class="yellow" value="1"></div>
+      </div>
+    </section>
+
+    <!-- H: quadratic 3-way -->
+    <section class="block blk" id="blkH">
+      <h2>② 回归系数（二次三阶，必填）</h2>
+      <div class="note">Y = b₀ + b₁X + b₂Z + b₃V + b₄X² + b₅X·Z + b₆X·V + b₇X²·Z + b₈X²·V + b₉Z·V + b₁₀X·Z·V + b₁₁X²·Z·V。调节为二分类时可设 Z 或 V 为 0/1。</div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Hb1" class="yellow" value="0.106"></div>
+        <div class="field"><label>Z 系数 b₂</label><input id="Hb2" class="yellow" value="0.17"></div>
+        <div class="field"><label>V 系数 b₃</label><input id="Hb3" class="yellow" value="0.025"></div>
+        <div class="field"><label>X² 系数 b₄</label><input id="Hb4" class="yellow" value="0.048"></div>
+        <div class="field"><label>X·Z 系数 b₅</label><input id="Hb5" class="yellow" value="-0.366"></div>
+        <div class="field"><label>X·V 系数 b₆</label><input id="Hb6" class="yellow" value="0.18"></div>
+        <div class="field"><label>X²·Z 系数 b₇</label><input id="Hb7" class="yellow" value="-0.181"></div>
+        <div class="field"><label>X²·V 系数 b₈</label><input id="Hb8" class="yellow" value="0.493"></div>
+        <div class="field"><label>Z·V 系数 b₉</label><input id="Hb9" class="yellow" value="0.025"></div>
+        <div class="field"><label>X·Z·V 系数 b₁₀</label><input id="Hb10" class="yellow" value="0.339"></div>
+        <div class="field"><label>X²·Z·V 系数 b₁₁</label><input id="Hb11" class="yellow" value="-0.461"></div>
+        <div class="field"><label>截距 b₀</label><input id="Hb0" class="yellow" value="4"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ 均值与 SD</h2>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="HmX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="HsX" class="yellow" value="1"></div>
+        <div class="field"><label>X 范围 ±__SD</label><input id="Hrange" class="yellow" value="1.5"></div>
+        <div class="field"><label>Z 均值</label><input id="HmZ" class="yellow" value="0"></div>
+        <div class="field"><label>Z 的 SD</label><input id="HsZ" class="yellow" value="1"></div>
+        <div class="field"><label>Z 取值（低,高）</label><input id="HzVals" class="yellow" placeholder="默认±SD"></div>
+        <div class="field"><label>V 均值</label><input id="HmV" class="yellow" value="0"></div>
+        <div class="field"><label>V 的 SD</label><input id="HsV" class="yellow" value="1"></div>
+        <div class="field"><label>V 取值（低,高）</label><input id="HvVals" class="yellow" placeholder="默认±SD"></div>
+      </div>
+    </section>
+
+    <!-- I: linear x quadratic moderator -->
+    <section class="block blk" id="blkI">
+      <h2>② 回归系数（线性 × 二次调节，必填）</h2>
+      <div class="note">Y = b₀ + b₁X + b₂W + b₃W² + b₄X·W + b₅X·W²（X 为线性主效应，W 为含二次项的调节变量）</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Ib1" class="yellow" value="0.6"></div>
+        <div class="field"><label>W 系数 b₂</label><input id="Ib2" class="yellow" value="0.4"></div>
+        <div class="field"><label>W² 系数 b₃</label><input id="Ib3" class="yellow" value="0.2"></div>
+        <div class="field"><label>交互 X·W 系数 b₄</label><input id="Ib4" class="yellow" value="-0.8"></div>
+        <div class="field"><label>交互 X·W² 系数 b₅</label><input id="Ib5" class="yellow" value="-0.6"></div>
+        <div class="field"><label>截距 b₀</label><input id="Ib0" class="yellow" value="3"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ 均值与 SD（X / W 各取低/中/高）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="ImX" class="yellow" value="0"></div>
+        <div class="field"><label>X 的 SD</label><input id="IsX" class="yellow" value="1"></div>
+        <div class="field"><label>W 均值</label><input id="ImW" class="yellow" value="0"></div>
+        <div class="field"><label>W 的 SD</label><input id="IsW" class="yellow" value="1"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">④ 指定取值（选填，格式：低,中,高）</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 取值（低,中,高）</label><input id="IxVals" class="yellow" placeholder="默认 均值−SD, 均值, 均值+SD"></div>
+        <div class="field"><label>W 取值（低,中,高）</label><input id="IwVals" class="yellow" placeholder="默认 均值−SD, 均值, 均值+SD"></div>
+      </div>
+    </section>
+
+    <!-- J: simple quadratic curve -->
+    <section class="block blk" id="blkJ">
+      <h2>② 回归系数（二次曲线，必填）</h2>
+      <div class="note">Y = b₀ + b₁X + b₂X²。控制变量请先中心化/标准化；X 默认取均值±1.5SD 共 13 点。</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 系数 b₁</label><input id="Jb1" class="yellow" value="2.533"></div>
+        <div class="field"><label>X² 系数 b₂</label><input id="Jb2" class="yellow" value="-14.532"></div>
+        <div class="field"><label>截距 b₀</label><input id="Jb0" class="yellow" value="0.956"></div>
+      </div>
+      <h2 class="warn" style="margin-top:14px;">③ X 的均值与 SD</h2>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field"><label>X 均值</label><input id="JmX" class="yellow" value="0.06"></div>
+        <div class="field"><label>X 的 SD</label><input id="JsX" class="yellow" value="0.04"></div>
+        <div class="field"><label>X 范围 ±__SD</label><input id="Jrange" class="yellow" value="1.5"></div>
+      </div>
+    </section>
+
+    <!-- 通用：图例 -->
+    <section class="block">
+      <h2>图例与数值设置</h2>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>X 低值图例（选填）</label><input id="lgXLo" class="yellow" placeholder="Low X"></div>
+        <div class="field"><label>X 高值图例（选填）</label><input id="lgXHi" class="yellow" placeholder="High X"></div>
+        <div class="field" id="fwMedX" style="display:none;"><label>X 中值图例（选填）</label><input id="lgXMed" class="yellow" placeholder="Medium X"></div>
+        <div class="field" id="fwMedW" style="display:none;"><label>W 中值图例（选填）</label><input id="lgWMed" class="yellow" placeholder="Medium W"></div>
+        <div class="field"><label>W/Z 低值图例（选填）</label><input id="lgWLo" class="yellow" value="Men"></div>
+        <div class="field"><label>W/Z 高值图例（选填）</label><input id="lgWHi" class="yellow" value="Women"></div>
+        <div class="field" id="fwLegLo"><label>V3 低值图例（选填）</label><input id="lgV3Lo" class="yellow" placeholder="Low V3"></div>
+        <div class="field" id="fwLegHi"><label>V3 高值图例（选填）</label><input id="lgV3Hi" class="yellow" placeholder="High V3"></div>
+      </div>
+      <div class="chk"><input type="checkbox" id="lgShow" checked><label for="lgShow">显示图例</label></div>
+      <div class="grid2" style="margin-top:8px;">
+        <div class="field"><label>图例位置</label>
+          <select id="lgPos">
+            <option value="below" selected>图片下方（横向居中，一行）</option>
+            <option value="right">图片右方（纵向居中，一列）</option>
+          </select></div>
+      </div>
+      <div class="chk"><input type="checkbox" id="valShow" checked><label for="valShow">在线条端点旁显示数值（≤2 条线时，左端值在左、右端值在右）</label></div>
+    </section>
+
+    <!-- 通用：主题 -->
+    <section class="block">
+      <h2>配色主题</h2>
+      <div class="themes" id="themes">
+        <div class="theme sel" data-th="classic"><div class="tn">经典蓝红</div>
+          <div class="sw"><i style="border-color:#2456a6"></i><i class="dash" style="border-color:#c0392b"></i><b>通用 / 演示</b></div></div>
+        <div class="theme" data-th="cjmono"><div class="tn">中文期刊 · 黑白</div>
+          <div class="sw"><i style="border-color:#000"></i><i class="dash" style="border-color:#000"></i><b>宋体 · 四边框 · 无网格</b></div></div>
+        <div class="theme" data-th="nature"><div class="tn">Nature（npg）</div>
+          <div class="sw"><i style="border-color:#E64B35"></i><i style="border-color:#4DBBD5"></i><b>#E64B35 / #4DBBD5 …</b></div></div>
+        <div class="theme" data-th="science"><div class="tn">Science（AAAS）</div>
+          <div class="sw"><i style="border-color:#3B4992"></i><i class="dash" style="border-color:#EE0000"></i><b>#3B4992 / #EE0000 …</b></div></div>
+      </div>
+    </section>
+
+    <div class="btns">
+      <button id="btnReset">↺ 重置当前模板示例</button>
+      <button id="btnClear" class="ghost">清空当前模板</button>
+    </div>
+  </div>
+
+  <!-- ================= 右栏 ================= -->
+  <div class="plot-wrap">
+    <div class="card">
+      <h2 id="plotTitle">交互效应图</h2>
+      <p class="note" id="plotNote"></p>
+      <div id="plotBox"></div>
+      <div class="dl">
+        <button id="btnSvg">⬇ 下载 SVG</button>
+        <button id="btnPng" class="ghost">⬇ 下载 PNG</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>绘图数据</h2>
+      <div style="display:flex;gap:6px;margin:8px 0;">
+        <button id="viewTbl" class="seg sel">数据表</button>
+        <button id="viewStata" class="seg">Stata 代码</button>
+        <button id="btnCopy" class="ghost" style="margin-left:auto;">📋 复制代码</button>
+      </div>
+      <div class="tblwrap" id="wrapTbl"><table class="tbl" id="tblData"></table></div>
+      <pre class="stata" id="stataBox" style="display:none;"></pre>
+    </div>
+    <div class="card blk on" id="cardSlope">
+      <h2>简单斜率检验</h2>
+      <p class="note">仅在调节变量的特定假设取值处推荐使用。<span id="slopeHint"></span></p>
+      <div class="tblwrap"><table class="tbl" id="tblSlopes"></table></div>
+    </div>
+    <div class="card blk" id="cardSlope3">
+      <h2>三阶交互检验</h2>
+      <p class="note"><span id="slope3Hint"></span></p>
+      <h3 class="subh">斜率差检验（Slope difference tests）</h3>
+      <div class="tblwrap"><table class="tbl" id="tblDiff"></table></div>
+      <h3 class="subh">简单斜率检验（Simple slope tests）</h3>
+      <div class="tblwrap"><table class="tbl" id="tblSimple3"></table></div>
+      <details><summary>计算公式</summary>
+        <div class="formula">斜率 s(z,v) = b₁ + b₄·z + b₅·v + b₇·z·v
+Var[s] = c′Σc，c = (1, z, v, z·v)′，Σ 为 [b₁,b₄,b₅,b₇] 的协方差矩阵
+斜率差 sᵢ−sⱼ：c = (0, zᵢ−zⱼ, vᵢ−vⱼ, zᵢvᵢ−zⱼvⱼ)′
+t = 差值 / √Var，df = N − k − 1，95% CI = 差值 ± t(0.975, df)·√Var</div>
+      </details>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p><strong>方法来源：</strong>Jeremy Dawson, <em>Interaction effects in regression</em>，
+     <a href="https://www.jeremydawson.co.uk/slopes.htm" target="_blank" rel="noopener">https://www.jeremydawson.co.uk/slopes.htm</a>。
+     十个模板对应其 two-way / three-way / quadratic 系列交互工作表。p 值与 t 分位数由 t 分布精确数值积分计算，与 R / Stata 一致。</p>
+  <p><strong>工具开发：</strong>Bilibili@<a href="https://space.bilibili.com/40545247" target="_blank" rel="noopener" style="color:#fb7299">拿铁一定要加冰</a>　·　<strong>版本：</strong>v3.2（纯前端单文件，可离线使用）</p>
+</footer>
+
+<script>
+"use strict";
+/* =====================================================================
+ * 调节效应绘图工具 v3.0 —— Dawson 八模板
+ * ===================================================================== */
+var LANCZOS=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,
+  -176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+function lgamma(z){if(z<0.5)return Math.log(Math.PI/Math.sin(Math.PI*z))-lgamma(1-z);z-=1;
+  var x=LANCZOS[0];for(var i=1;i<9;i++)x+=LANCZOS[i]/(z+i);var t=z+7.5;
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);}
+function betacf(x,a,b){var MAXIT=300,EPS=3e-14,FPMIN=1e-300,qab=a+b,qap=a+1,qam=a-1,c=1,
+  d=1-qab*x/qap,h,m,m2,aa,del;if(Math.abs(d)<FPMIN)d=FPMIN;d=1/d;h=d;
+  for(m=1;m<=MAXIT;m++){m2=2*m;aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;
+  if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;h*=d*c;
+  aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;
+  c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;del=d*c;h*=del;
+  if(Math.abs(del-1)<EPS)break;}return h;}
+function ibeta(x,a,b){if(x<=0)return 0;if(x>=1)return 1;
+  if(x>(a+1)/(a+b+2))return 1-ibeta(1-x,b,a);
+  return Math.exp(a*Math.log(x)+b*Math.log(1-x)-(lgamma(a)+lgamma(b)-lgamma(a+b)))/a*betacf(x,a,b);}
+function t2p(t,df){if(!isFinite(df)||df<=0)return NaN;return ibeta(df/(df+t*t),df/2,0.5);}
+function tCrit(p,df){ /* 双尾 p 对应的 t 临界值，二分法 */
+  if(!isFinite(df)||df<=0)return NaN;
+  var lo=0,hi=1000;
+  for(var i=0;i<100;i++){var mid=(lo+hi)/2;
+    if(t2p(mid,df)>p)lo=mid;else hi=mid;}
+  return (lo+hi)/2;}
+
+/* ---------- 工具 ---------- */
+function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?null:v;}
+function str(id){return document.getElementById(id).value.trim();}
+function f(v,d){return(v===null||v===undefined||isNaN(v))?"—":v.toFixed(d===undefined?2:d);}
+function trimNum(v,d){var s=v.toFixed(d);s=s.replace(/\.?0+$/,"");return s==="-0"?"0":s;}
+function fmtP(p){if(p===null||p===undefined||isNaN(p))return"—";
+  if(p<1e-4){var e=Math.floor(Math.log10(p));return(p/Math.pow(10,e)).toFixed(2)+"e"+e;}
+  return p.toFixed(3);}
+function stars(p){if(isNaN(p))return"";if(p<0.001)return"***";if(p<0.01)return"**";if(p<0.05)return"*";return"";}
+function xsRange(m,s,n){var o=[];for(var i=0;i<n;i++)o.push(m-s+2*s*i/(n-1));return o;}
+
+/* ---------- 主题（4 线） ---------- */
+var THEMES={
+  classic:{colors:["#2456a6","#c0392b","#1e8449","#8e44ad"],dash:[null,"8 5",null,"8 5"],
+    mark:["circle","square","triangle","diamond"],open:[false,true,false,true],
+    grid:"#e8ecf3",axis:"#39445a",font:'"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif',frame:false},
+  cjmono:{colors:["#000000","#000000","#000000","#000000"],dash:[null,"10 5","2 4","10 5 2 4"],
+    mark:["circle","square","triangle","diamond"],open:[true,false,true,false],
+    grid:null,axis:"#000000",font:'"Times New Roman","Songti SC","SimSun",serif',frame:true},
+  nature:{colors:["#E64B35","#4DBBD5","#00A087","#3C5488"],dash:[null,null,null,null],
+    mark:["circle","square","triangle","diamond"],open:[false,true,false,true],
+    grid:"#eef1f6",axis:"#222222",font:'Arial,Helvetica,sans-serif',frame:false},
+  science:{colors:["#3B4992","#EE0000","#008B45","#631879"],dash:[null,"7 4",null,"7 4"],
+    mark:["circle","square","triangle","diamond"],open:[false,true,false,true],
+    grid:"#e9ebf2",axis:"#333333",font:'Arial,Helvetica,sans-serif',frame:false}
+};
+var curTheme="classic", curTmpl="A";
+var T_DESC={
+  A:"模型：Ŷ = b₀ + b₁X + b₂W + b₃X·W（直线连接低/高取值，附简单斜率检验）",
+  B:"模型：η = b₀ + b₁X + b₂W + b₃X·W，p = 1/(1+e^−η)（logit 系数，9 点曲线）",
+  C:"模型：log(E(Y)) = b₀ + b₁X + b₂W + b₃X·W，E(Y) = e^η（9 点曲线）",
+  D:"模型：Ŷ = b₀ + b₁X + b₂X² + b₃W + b₄X·W + b₅X²·W（13 点曲线，默认 X 取均值±1.5SD）",
+  E:"模型：Ŷ = b₀ + b₁X + b₂Z + b₃V + b₄X·Z + b₅X·V + b₆Z·V + b₇X·Z·V（四条线，附斜率差与简单斜率检验）",
+  F:"模型：η = b₀ + b₁X + b₂Z + b₃V + b₄X·Z + b₅X·V + b₆Z·V + b₇X·Z·V，p = 1/(1+e^−η)（9 点曲线，四条线）",
+  G:"模型：log(E(Y)) = η（同上），E(Y) = e^η（9 点曲线，四条线）",
+  H:"模型：Y = b₀ + b₁X + b₂Z + b₃V + b₄X² + b₅X·Z + b₆X·V + b₇X²·Z + b₈X²·V + b₉Z·V + b₁₀X·Z·V + b₁₁X²·Z·V（13 点曲线，四条线）",
+  I:"模型：Ŷ = b₀ + b₁X + b₂W + b₃W² + b₄X·W + b₅X·W²（X 低/中/高 × W 三条线）",
+  J:"模型：Ŷ = b₀ + b₁X + b₂X²（单变量二次曲线，13 点，默认 X 取均值±1.5SD）"
+};
+
+/* ---------- 模板计算 ---------- */
+function computeA(){
+  var b1=num("Ab1"),b2=num("Ab2"),b3=num("Ab3"),b0=num("Ab0");
+  var mX=num("AmX"),sX=num("AsX"),mW=num("AmW"),sW=num("AsW");
+  var xLo=num("AxLo"),xHi=num("AxHi"),wLo=num("AwLo"),wHi=num("AwHi");
+  var autoX=false,autoW=false;
+  if(xLo===null||xHi===null){autoX=true;if(mX!==null&&sX!==null){xLo=mX-sX;xHi=mX+sX;}else{xLo=-1;xHi=1;}}
+  if(wLo===null||wHi===null){autoW=true;if(mW!==null&&sW!==null){wLo=mW-sW;wHi=mW+sW;}else{wLo=-1;wHi=1;}}
+  if(b0===null||b1===null||b2===null||b3===null)return null;
+  function y(X,W){return b0+b1*X+b2*W+b3*X*W;}
+  var v1=num("Av1"),v3=num("Av3"),c13=num("Ac13"),N=num("AN"),k=num("Ak");
+  var testable=(v1!==null&&v3!==null&&c13!==null&&N!==null&&k!==null&&N-k-1>0);
+  var slopes=[wLo,wHi].map(function(W){
+    var s=b1+b3*W,o={W:W,slope:s,se:NaN,t:NaN,df:NaN,p:NaN};
+    if(testable){var v=v1+W*W*v3+2*W*c13;o.se=Math.sqrt(v);o.t=s/o.se;o.df=N-k-1;o.p=t2p(Math.abs(o.t),o.df);}
+    return o;});
+  var lw=str("nameW")||"W";
+  return{kind:"A",xs:[xLo,xHi],cat:true,
+    lines:[{label:(str("lgWLo")||("Low "+lw)),W:wLo,ys:[y(xLo,wLo),y(xHi,wLo)]},
+           {label:(str("lgWHi")||("High "+lw)),W:wHi,ys:[y(xLo,wHi),y(xHi,wHi)]}],
+    slopes:slopes,testable:testable,extra:{xLo:xLo,xHi:xHi,autoX:autoX,autoW:autoW}};
+}
+function lin2(pf,n){ /* B/C 通用：2 调节、logit/log 链接 */
+  var b1=num(pf+"b1"),b2=num(pf+"b2"),b3=num(pf+"b3"),b0=num(pf+"b0");
+  var mX=num(pf+"mX"),sX=num(pf+"sX"),wLo=num(pf+"wLo"),wHi=num(pf+"wHi");
+  if(b0===null||b1===null||b2===null||b3===null)return null;
+  if(mX===null)mX=0;if(sX===null)sX=1;if(wLo===null)wLo=-1;if(wHi===null)wHi=1;
+  var xs=xsRange(mX,sX,9),lw=str("nameW")||"W";
+  function eta(X,W){return b0+b1*X+b2*W+b3*X*W;}
+  var link=n==="B"?function(e){return 1/(1+Math.exp(-e));}:function(e){return Math.exp(e);};
+  return{kind:n,xs:xs,cat:false,clipY:n==="B"?[0,1]:[0,Infinity],
+    lines:[{label:(str("lgWLo")||("Low "+lw))+"(W="+trimNum(wLo,2)+")",W:wLo,ys:xs.map(function(x){return link(eta(x,wLo));})},
+           {label:(str("lgWHi")||("High "+lw))+"(W="+trimNum(wHi,2)+")",W:wHi,ys:xs.map(function(x){return link(eta(x,wHi));})}]};
+}
+function computeB(){return lin2("B","B");}
+function computeC(){return lin2("C","C");}
+function parsePair(s){if(!s)return null;var p=s.split(/[,，\s]+/).map(parseFloat).filter(function(v){return!isNaN(v);});return p.length>=2?[p[0],p[1]]:null;}
+function computeD(){
+  var b1=num("Db1"),b2=num("Db2"),b3=num("Db3"),b4=num("Db4"),b5=num("Db5"),b0=num("Db0");
+  var mX=num("DmX"),sX=num("DsX"),mW=num("DmW"),sW=num("DsW"),rg=num("Drange");
+  if(b0===null||b1===null||b2===null||b3===null||b4===null||b5===null)return null;
+  if(mX===null)mX=0;if(sX===null)sX=1;if(mW===null)mW=0;if(sW===null)sW=1;if(rg===null)rg=1.5;
+  var pr=parsePair(str("DwVals")),wLo,wHi;
+  if(pr){wLo=pr[0];wHi=pr[1];}else{wLo=mW-sW;wHi=mW+sW;}
+  var xs=xsRange(mX,rg*sX,13),lw=str("nameW")||"W";
+  function y(X,W){return b0+b1*X+b2*X*X+b3*W+b4*X*W+b5*X*X*W;}
+  return{kind:"D",xs:xs,cat:false,
+    lines:[{label:(str("lgWLo")||("Low "+lw))+"(W="+trimNum(wLo,2)+")",W:wLo,ys:xs.map(function(x){return y(x,wLo);})},
+           {label:(str("lgWHi")||("High "+lw))+"(W="+trimNum(wHi,2)+")",W:wHi,ys:xs.map(function(x){return y(x,wHi);})}]};
+}
+/* —— 三阶通用：给定 X 网格与 (z,v) 组合 —— */
+function threeWay(kind,pf,npts,rg){
+  var b=[];for(var i=1;i<=7;i++)b.push(num(pf+"b"+i));
+  var b0=num(pf+"b0"),mX=num(pf+"mX"),sX=num(pf+"sX");
+  if(b0===null||b.some(function(v){return v===null;}))return null;
+  if(mX===null)mX=0;if(sX===null)sX=1;if(rg===null)rg=1;
+  var xs;
+  if(kind==="E"){
+    var xLo=num("ExLo"),xHi=num("ExHi");
+    if(xLo===null||xHi===null){xLo=mX-sX;xHi=mX+sX;}
+    xs=[xLo,xHi];
+  }else{
+    xs=xsRange(mX,rg*sX,npts);
+  }
+  var zLo,zHi,vLo,vHi;
+  if(pf==="H"){
+    var mZ=num(pf+"mZ"),sZ=num(pf+"sZ"),mV=num(pf+"mV"),sV=num(pf+"sV");
+    if(mZ===null)mZ=0;if(sZ===null)sZ=1;if(mV===null)mV=0;if(sV===null)sV=1;
+    var pz=parsePair(str(pf+"zVals")),pv=parsePair(str(pf+"vVals"));
+    zLo=pz?pz[0]:mZ-sZ;zHi=pz?pz[1]:mZ+sZ;vLo=pv?pv[0]:mV-sV;vHi=pv?pv[1]:mV+sV;
+  }else{
+    zLo=num(pf+"zLo");zHi=num(pf+"zHi");vLo=num(pf+"vLo");vHi=num(pf+"vHi");
+    if(zLo===null)zLo=-1;if(zHi===null)zHi=1;if(vLo===null)vLo=-1;if(vHi===null)vHi=1;
+  }
+  var nv3=str("nameV3")||"V3";
+  var zN=str("nameW")||"Z";
+  function eta(X,Z,V){return b0+b[0]*X+b[1]*Z+b[2]*V+b[3]*X*Z+b[4]*X*V+b[5]*Z*V+b[6]*X*Z*V;}
+  var link=function(e){return e;};
+  if(kind==="F")link=function(e){return 1/(1+Math.exp(-e));};
+  if(kind==="G")link=function(e){return Math.exp(e);};
+  if(kind==="H"){
+    var c=[];for(var j=1;j<=11;j++)c.push(num(pf+"b"+j));
+    if(c.some(function(v){return v===null;}))return null;
+    link=function(e){return e;}; /* H 在下面重算 */
+  }
+  var combos=[[zHi,vHi],[zHi,vLo],[zLo,vHi],[zLo,vLo]];
+  function lab(c){
+    var zl=c[0]===zHi?(str("lgWHi")||("High "+zN)):(str("lgWLo")||("Low "+zN));
+    var vl=c[1]===vHi?(str("lgV3Hi")||("High "+nv3)):(str("lgV3Lo")||("Low "+nv3));
+    return zl+"，"+vl;
+  }
+  var lines=combos.map(function(c){
+    var ys=xs.map(function(X){
+      if(kind==="H"){
+        return b0+c[0]*X+c[1]*c[0===0?0:0]+0; /* 占位，不会执行 */
+      }
+      return link(eta(X,c[0],c[1]));
+    });
+    return{label:lab(c),Z:c[0],V:c[1],ys:ys};
+  });
+  if(kind==="H"){
+    var cb=[];for(var j2=1;j2<=11;j2++)cb.push(num(pf+"b"+j2));
+    lines=combos.map(function(c){
+      var Z=c[0],V=c[1];
+      return{label:lab(c),Z:Z,V:V,ys:xs.map(function(X){
+        return b0+cb[0]*X+cb[1]*Z+cb[2]*V+cb[3]*X*X+cb[4]*X*Z+cb[5]*X*V+cb[6]*X*X*Z+cb[7]*X*X*V+cb[8]*Z*V+cb[9]*X*Z*V+cb[10]*X*X*Z*V;
+      })};
+    });
+  }
+  var out={kind:kind,xs:xs,cat:kind==="E",lines:lines};
+  if(kind==="E")out.extra={xLo:xs[0],xHi:xs[1]};
+  if(kind==="F")out.clipY=[0,1];
+  if(kind==="G")out.clipY=[0,Infinity];
+  /* —— 模板 E：斜率差 + 简单斜率检验 —— */
+  if(kind==="E"){
+    var V1=num("EV1"),V4=num("EV4"),V5=num("EV5"),V7=num("EV7"),
+        c14=num("Ec14"),c15=num("Ec15"),c17=num("Ec17"),
+        c45=num("Ec45"),c47=num("Ec47"),c57=num("Ec57"),
+        N=num("EN"),kk=num("Ek");
+    var testable=[V1,V4,V5,V7,c14,c15,c17,c45,c47,c57,N,kk].every(function(v){return v!==null;})&&N-kk-1>0;
+    var tests={on:testable,df:testable?N-kk-1:NaN,slopes:[],diffs:[]};
+    /* Σ over [b1,b4,b5,b7] */
+    function quad(c){ /* c = [c1,c4,c5,c7] */
+      return c[0]*c[0]*V1+c[1]*c[1]*V4+c[2]*c[2]*V5+c[3]*c[3]*V7
+        +2*(c[0]*c[1]*c14+c[0]*c[2]*c15+c[0]*c[3]*c17+c[1]*c[2]*c45+c[1]*c[3]*c47+c[2]*c[3]*c57);
+    }
+    var slopes=combos.map(function(c){
+      var s=b[0]+b[3]*c[0]+b[4]*c[1]+b[6]*c[0]*c[1];
+      return{Z:c[0],V:c[1],slope:s};
+    });
+    if(testable){
+      var tc=tCrit(0.05,tests.df);
+      tests.slopes=slopes.map(function(s){
+        var v=quad([1,s.Z,s.V,s.Z*s.V]),se=Math.sqrt(v),t=s.slope/se;
+        return{Z:s.Z,V:s.V,slope:s.slope,se:se,t:t,p:t2p(Math.abs(t),tests.df)};
+      });
+      for(var a=0;a<4;a++)for(var bb=a+1;bb<4;bb++){
+        var ca=combos[a],cb2=combos[bb];
+        var d=slopes[a].slope-slopes[bb].slope;
+        var cv=[0,ca[0]-cb2[0],ca[1]-cb2[1],ca[0]*ca[1]-cb2[0]*cb2[1]];
+        var v2=quad(cv),se2=Math.sqrt(v2),t2=d/se2,p2=t2p(Math.abs(t2),tests.df);
+        tests.diffs.push({i:a,j:bb,d:d,se:se2,t:t2,p:p2,
+          lo:d-tc*se2,hi:d+tc*se2});
+      }
+    }else{
+      tests.slopes=slopes.map(function(s){return{Z:s.Z,V:s.V,slope:s.slope,se:NaN,t:NaN,p:NaN};});
+    }
+    out.tests=tests;
+  }
+  return out;
+}
+function parseTriple(s){if(!s)return null;var p=s.split(/[,，\s]+/).map(parseFloat).filter(function(v){return!isNaN(v);});return p.length>=3?p.slice(0,3):null;}
+function computeI(){
+  var b1=num("Ib1"),b2=num("Ib2"),b3=num("Ib3"),b4=num("Ib4"),b5=num("Ib5"),b0=num("Ib0");
+  var mX=num("ImX"),sX=num("IsX"),mW=num("ImW"),sW=num("IsW");
+  if(b0===null||[b1,b2,b3,b4,b5].some(function(v){return v===null;}))return null;
+  if(mX===null)mX=0;if(sX===null)sX=1;if(mW===null)mW=0;if(sW===null)sW=1;
+  var pX=parseTriple(str("IxVals")),pW=parseTriple(str("IwVals"));
+  var xs=pX?[pX[0],pX[1],pX[2]]:[mX-sX,mX,mX+sX];
+  var wLo,wMed,wHi;
+  if(pW){wLo=pW[0];wMed=pW[1];wHi=pW[2];}else{wLo=mW-sW;wMed=mW;wHi=mW+sW;}
+  var lx=str("nameX")||"X",lw=str("nameW")||"W";
+  function y(X,W){return b0+b1*X+b2*W+b3*W*W+b4*X*W+b5*X*W*W;}
+  function wlab(W){
+    if(W===wLo)return(str("lgWLo")||("Low "+lw))+"(W="+trimNum(W,2)+")";
+    if(W===wHi)return(str("lgWHi")||("High "+lw))+"(W="+trimNum(W,2)+")";
+    return(str("lgWMed")||("Medium "+lw))+"(W="+trimNum(W,2)+")";}
+  return{kind:"I",xs:xs,cat:true,threeX:true,
+    lines:[{label:wlab(wLo),W:wLo,ys:xs.map(function(X){return y(X,wLo);})},
+           {label:wlab(wMed),W:wMed,ys:xs.map(function(X){return y(X,wMed);})},
+           {label:wlab(wHi),W:wHi,ys:xs.map(function(X){return y(X,wHi);})}],
+    extra:{xLabs:xs}};
+}
+function computeJ(){
+  var b1=num("Jb1"),b2=num("Jb2"),b0=num("Jb0");
+  var mX=num("JmX"),sX=num("JsX"),rg=num("Jrange");
+  if(b0===null||b1===null||b2===null)return null;
+  if(mX===null)mX=0;if(sX===null)sX=1;if(rg===null)rg=1.5;
+  var xs=xsRange(mX,rg*sX,13);
+  return{kind:"J",xs:xs,cat:false,
+    lines:[{label:"",ys:xs.map(function(X){return b0+b1*X+b2*X*X;})}]};
+}
+function computeE(){return threeWay("E","E",2,1);}
+function computeF(){return threeWay("F","F",9,1);}
+function computeG(){return threeWay("G","G",9,1);}
+function computeH(){return threeWay("H","H",13,num("Hrange"));}
+var COMPUTE={A:computeA,B:computeB,C:computeC,D:computeD,E:computeE,F:computeF,G:computeG,H:computeH,I:computeI,J:computeJ};
+
+/* ---------- SVG 绘图 ---------- */
+var SVGNS="http://www.w3.org/2000/svg";
+function el(t,a,p){var e=document.createElementNS(SVGNS,t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+
+function drawMarker(svg,TH,idx,cx,cy,col){
+  var type=TH.mark[idx%4],open=TH.open[idx%4];
+  var fill=open?"#ffffff":col;
+  if(type==="circle")el("circle",{cx:cx,cy:cy,r:6,fill:fill,stroke:col,"stroke-width":2},svg);
+  else if(type==="square")el("rect",{x:cx-5.5,y:cy-5.5,width:11,height:11,fill:fill,stroke:col,"stroke-width":1.6},svg);
+  else if(type==="triangle")el("path",{d:"M "+cx+" "+(cy-6.5)+" L "+(cx+6)+" "+(cy+5)+" L "+(cx-6)+" "+(cy+5)+" Z",fill:fill,stroke:col,"stroke-width":1.6,"stroke-linejoin":"round"},svg);
+  else el("path",{d:"M "+cx+" "+(cy-6.5)+" L "+(cx+6)+" "+cy+" L "+cx+" "+(cy+6.5)+" L "+(cx-6)+" "+cy+" Z",fill:fill,stroke:col,"stroke-width":1.6,"stroke-linejoin":"round"},svg);
+}
+function legendEntry(g,TH,idx,x,y,txt){
+  var col=TH.colors[idx%4],dash=TH.dash[idx%4];
+  var ln=el("line",{x1:x,y1:y,x2:x+28,y2:y,stroke:col,"stroke-width":2.6},g);
+  if(dash)ln.setAttribute("stroke-dasharray",dash);
+  drawMarker(g,TH,idx,x+14,y,col);
+  var t=el("text",{x:x+38,y:y+4,"font-size":12.5,fill:"#1a2332",style:"font-family:"+TH.font},g);
+  t.textContent=txt;
+  return 38+txt.length*7;
+}
+function drawLegend(svg,TH,lines,pos,mL,mT,pw,ph){
+  var ws=lines.map(function(L){return 46+L.label.length*7.2;}),gap=26;
+  if(pos==="below"){ /* 横向居中，确保一行 */
+    var rowW=ws.reduce(function(a,w){return a+w+gap;},-gap);
+    var ox=mL+(pw-rowW)/2,oy=mT+ph+80;
+    lines.forEach(function(L,i){legendEntry(svg,TH,i,ox,oy,L.label);ox+=ws[i]+gap;});
+  }else{ /* 右方：纵向居中，确保一列 */
+    var ox2=mL+pw+18;
+    var oy0=mT+(ph-lines.length*22)/2;
+    lines.forEach(function(L,i){legendEntry(svg,TH,i,ox2,oy0+i*22,L.label);});
+  }
+}
+function drawPlot(M){
+  var box=document.getElementById("plotBox");box.innerHTML="";
+  if(!M){box.innerHTML='<p style="color:#c0392b;font-size:13px;">请完整填写当前模板的回归系数。</p>';return null;}
+  var TH=THEMES[curTheme];
+  var valOn=document.getElementById("valShow").checked&&M.lines.length<=2;
+  var legPos=document.getElementById("lgPos").value,
+      showLeg=document.getElementById("lgShow").checked&&M.lines.length>=2;
+  var W0=640,H=470,mT=54,mL=valOn?104:88,mR=valOn?78:26;
+  var pw=W0-mL-mR,ph=H-mT-88;
+  var rightW=0,legBelowH=0;
+  if(showLeg){
+    if(legPos==="right"){
+      var mw=Math.max.apply(null,M.lines.map(function(L){return 46+L.label.length*7.2;}))+16;
+      rightW=mw+22;
+    }else{
+      legBelowH=38;
+    }
+  }
+  var W_=W0+rightW;
+  var svg=el("svg",{viewBox:"0 0 "+W_+" "+(H+legBelowH),role:"img"},box);
+
+  var all=[];M.lines.forEach(function(L){all=all.concat(L.ys);});
+  var yMin=Math.min.apply(null,all),yMax=Math.max.apply(null,all);
+  var pad=(yMax-yMin)*0.12||1;yMin-=pad;yMax+=pad;
+  if(M.clipY){yMin=Math.max(M.clipY[0],yMin);yMax=Math.min(M.clipY[1],yMax);}
+  function yy(v){return mT+ph-(v-yMin)/(yMax-yMin)*ph;}
+
+  var nt=6,st=(yMax-yMin)/(nt-1);
+  for(var i=0;i<nt;i++){var vv=yMin+st*i,yv=yy(vv);
+    if(TH.grid)el("line",{x1:mL,y1:yv,x2:mL+pw,y2:yv,stroke:TH.grid,"stroke-width":1},svg);
+    var tt=el("text",{x:mL-10,y:yv+4,"text-anchor":"end","font-size":12,fill:"#5a6577",style:"font-family:"+TH.font},svg);
+    tt.textContent=Math.abs(vv)>=1000?vv.toExponential(1):trimNum(vv,3);}
+  var ax=el("g",{stroke:TH.axis,"stroke-width":TH.frame?1.6:1.4},svg);
+  el("line",{x1:mL,y1:mT,x2:mL,y2:mT+ph},ax);
+  el("line",{x1:mL,y1:mT+ph,x2:mL+pw,y2:mT+ph},ax);
+  if(TH.frame){el("line",{x1:mL+pw,y1:mT,x2:mL+pw,y2:mT+ph},ax);el("line",{x1:mL,y1:mT,x2:mL+pw,y2:mT},ax);}
+
+  var lx=str("nameX")||"X",ly=str("nameY")||"Y";
+  var tx=el("text",{x:mL+pw/2,y:mT+ph+50,"text-anchor":"middle","font-size":14,"font-weight":600,fill:"#1a2332",style:"font-family:"+TH.font},svg);
+  tx.textContent=lx+(M.cat?"（低 → 高）":"");
+  var ty=el("text",{x:mL-62,y:mT+ph/2,"text-anchor":"middle","font-size":14,"font-weight":600,fill:"#1a2332",
+    transform:"rotate(-90 "+(mL-62)+" "+(mT+ph/2)+")",style:"font-family:"+TH.font},svg);
+  ty.textContent=ly;
+
+  var xsPx;
+  if(M.cat){
+    var fr=M.threeX?[0.15,0.5,0.85]:[0.2,0.8];
+    xsPx=fr.map(function(frc){return mL+pw*frc;});
+    var labs;
+    if(M.threeX){
+      labs=[[0,str("lgXLo")||("Low "+lx),M.extra.xLabs[0]],
+            [1,str("lgXMed")||("Medium "+lx),M.extra.xLabs[1]],
+            [2,str("lgXHi")||("High "+lx),M.extra.xLabs[2]]];
+    }else{
+      labs=[[0,str("lgXLo")||("Low "+lx),M.extra.xLo],[1,str("lgXHi")||("High "+lx),M.extra.xHi]];
+    }
+    labs.forEach(function(d){
+      el("line",{x1:xsPx[d[0]],y1:mT+ph,x2:xsPx[d[0]],y2:mT+ph+6,stroke:TH.axis,"stroke-width":1.4},svg);
+      var c=el("text",{x:xsPx[d[0]],y:mT+ph+24,"text-anchor":"middle","font-size":13,fill:"#1a2332",style:"font-family:"+TH.font},svg);
+      c.textContent=d[1]+" ("+f(d[2])+")";});
+  }else{
+    var xMin=M.xs[0],xMax=M.xs[M.xs.length-1],xr=xMax-xMin||1;
+    var xpd=valOn?0.10:0.08;
+    xMin-=xr*xpd;xMax+=xr*xpd;
+    function xx(v){return mL+(v-xMin)/(xMax-xMin)*pw;}
+    xsPx=M.xs.map(xx);
+    var nT=5;
+    for(var j=0;j<nT;j++){var xv=M.xs[0]+xr*(xpd+(1-2*xpd)*j/(nT-1));
+      el("line",{x1:xx(xv),y1:mT+ph,x2:xx(xv),y2:mT+ph+(TH.frame?-6:6),stroke:TH.axis,"stroke-width":1.2},svg);
+      var st2=el("text",{x:xx(xv),y:mT+ph+24,"text-anchor":"middle","font-size":12,fill:"#5a6577",style:"font-family:"+TH.font},svg);
+      st2.textContent=trimNum(xv,2);}
+  }
+  M.lines.forEach(function(L,idx){
+    var col=TH.colors[idx%4],dash=TH.dash[idx%4];
+    var pts=L.ys.map(function(v,i){return xsPx[i].toFixed(2)+","+yy(v).toFixed(2);}).join(" ");
+    var pl=el("polyline",{points:pts,fill:"none",stroke:col,"stroke-width":2.6,"stroke-linejoin":"round","stroke-linecap":"round"},svg);
+    if(dash)pl.setAttribute("stroke-dasharray",dash);
+    [0,L.ys.length-1].forEach(function(i){drawMarker(svg,TH,idx,xsPx[i],yy(L.ys[i]),col);});
+  });
+  /* 端点数值：左端点数值在左、右端点数值在右；两条线时上下错开 */
+  if(valOn){
+    M.lines.forEach(function(L,idx){
+      var col=TH.colors[idx%4],dy=idx===0?-5:11;
+      [[0,"end",-12],[L.ys.length-1,"start",12]].forEach(function(d){
+        var vt=el("text",{x:xsPx[d[0]]+d[2],y:yy(L.ys[d[0]])+dy,"text-anchor":d[1],"font-size":11.5,"font-weight":600,fill:col,style:"font-family:"+TH.font},svg);
+        vt.textContent=f(L.ys[d[0]]);
+      });
+    });
+  }
+  if(showLeg)drawLegend(svg,TH,M.lines,legPos,mL,mT,pw,ph);
+  return svg;
+}
+
+/* ---------- 表格 ---------- */
+function renderData(M){
+  var t=document.getElementById("tblData"),lx=str("nameX")||"X";
+  if(!M){t.innerHTML="";return;}
+  var h="<tr><th>"+lx+(M.cat?"":"（取值）")+"</th>"+M.lines.map(function(L){return"<th>"+L.label+"</th>";}).join("")+"</tr>";
+  var rows=M.xs.map(function(x,i){
+    return"<tr><td class='mono'>"+trimNum(x,3)+"</td>"+M.lines.map(function(L){return"<td class='mono'>"+f(L.ys[i])+"</td>";}).join("")+"</tr>";
+  }).join("");
+  t.innerHTML=h+rows;
+}
+function slopeSigCell(p){
+  if(isNaN(p))return"—";
+  return p<0.05?'<span class="sig">'+stars(p)+"</span>":'<span class="ns">ns</span>';
+}
+function stataName(s,fb){var n=(s||"").replace(/[^A-Za-z0-9_]/g,"_");if(!/^[_A-Za-z]/.test(n))n="v"+n;if(n==="v"||!n)n=fb;return n.slice(0,32);}
+function renderStata(M){
+  var box=document.getElementById("stataBox");if(!box)return;
+  if(!M){box.textContent="// 请完整填写当前模板的回归系数";return;}
+  var xn=stataName(str("nameX"),"x");
+  var head=xn+" "+M.lines.map(function(_,k){return "y"+(k+1);}).join(" ");
+  var rows=M.xs.map(function(x,i){
+    return [x].concat(M.lines.map(function(L){return L.ys[i];}))
+      .map(function(v){return Number(v.toFixed(6));}).join(" ");
+  });
+  var out="clear\ninput "+head+"\n"+rows.join("\n")+"\nend\n";
+  out+="label var "+xn+' "'+(str("nameX")||"X").replace(/"/g,"'")+'"\n';
+  M.lines.forEach(function(L,k){out+='label var y'+(k+1)+' "'+L.label.replace(/"/g,"'")+'"\n';});
+  box.textContent=out;
+}
+document.getElementById("viewTbl").addEventListener("click",function(){
+  document.getElementById("wrapTbl").style.display="";
+  document.getElementById("stataBox").style.display="none";
+  document.getElementById("viewTbl").classList.add("sel");
+  document.getElementById("viewStata").classList.remove("sel");});
+document.getElementById("viewStata").addEventListener("click",function(){
+  document.getElementById("wrapTbl").style.display="none";
+  document.getElementById("stataBox").style.display="";
+  document.getElementById("viewStata").classList.add("sel");
+  document.getElementById("viewTbl").classList.remove("sel");});
+document.getElementById("btnCopy").addEventListener("click",function(){
+  var txt=document.getElementById("stataBox").textContent;
+  function done(){var b=document.getElementById("btnCopy");b.textContent="✓ 已复制";setTimeout(function(){b.textContent="📋 复制代码";},1500);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,function(){fallback();});}
+  else fallback();
+  function fallback(){var r=document.createRange();r.selectNodeContents(document.getElementById("stataBox"));
+    var s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand("copy");}catch(e){}s.removeAllRanges();done();}
+});
+function renderSlopes(M){
+  var card=document.getElementById("cardSlope");
+  if(!M||M.kind!=="A"){card.classList.remove("on");return;}
+  card.classList.add("on");
+  document.getElementById("slopeHint").textContent=M.testable?"":"（未填完整方差信息，仅显示斜率）";
+  var head=M.testable?
+    "<tr><th>W 取值</th><th>简单斜率</th><th>SE</th><th>t</th><th>df</th><th>p（双尾）</th><th>显著性</th></tr>":
+    "<tr><th>W 取值</th><th>简单斜率 b₁+b₃·W</th></tr>";
+  var rows=M.slopes.map(function(s){
+    var lab=M.lines[Math.abs(s.W-M.lines[0].W)<1e-12?0:1].label+"（W = "+f(s.W)+"）";
+    if(!M.testable)return"<tr><td class='l'>"+lab+"</td><td class='mono'>"+f(s.slope)+"</td></tr>";
+    return"<tr><td class='l'>"+lab+"</td><td class='mono'>"+f(s.slope)+"</td><td class='mono'>"+f(s.se,4)+
+      "</td><td class='mono'>"+f(s.t,3)+"</td><td class='mono'>"+s.df+"</td><td class='mono'>"+fmtP(s.p)+
+      "</td><td>"+slopeSigCell(s.p)+"</td></tr>";}).join("");
+  document.getElementById("tblSlopes").innerHTML=head+rows;
+}
+function renderSlope3(M){
+  var card=document.getElementById("cardSlope3");
+  if(!M||M.kind!=="E"||!M.tests){card.classList.remove("on");return;}
+  card.classList.add("on");
+  var T=M.tests;
+  document.getElementById("slope3Hint").textContent=T.on?"df = "+T.df+"（双侧检验）":"（未填完整方差–协方差信息，仅显示斜率）";
+  /* 斜率差 */
+  var dh="<tr><th>斜率对</th><th>斜率差</th><th>SE</th><th>t</th><th>p（双尾）</th><th>95% CI</th></tr>";
+  var dr=T.on?T.diffs.map(function(d){
+    return"<tr><td class='l'>("+ (d.i+1) +") − ("+(d.j+1)+")</td><td class='mono'>"+f(d.d,4)+"</td><td class='mono'>"+f(d.se,4)+
+      "</td><td class='mono'>"+f(d.t,3)+"</td><td class='mono'>"+fmtP(d.p)+"</td><td class='mono'>("+f(d.lo,3)+", "+f(d.hi,3)+")</td></tr>";
+  }).join(""):"";
+  document.getElementById("tblDiff").innerHTML=dh+(dr||"<tr><td colspan='6'>—</td></tr>");
+  /* 简单斜率 */
+  var sh=T.on?
+    "<tr><th>线</th><th>Z</th><th>V</th><th>简单斜率</th><th>SE</th><th>t</th><th>p（双尾）</th><th>显著性</th></tr>":
+    "<tr><th>线</th><th>Z</th><th>V</th><th>简单斜率</th></tr>";
+  var sr=T.slopes.map(function(s,i){
+    var base="<td class='l'>("+(i+1)+") "+M.lines[i].label+"</td><td class='mono'>"+f(s.Z)+"</td><td class='mono'>"+f(s.V)+"</td><td class='mono'>"+f(s.slope,4)+"</td>";
+    if(!T.on)return"<tr>"+base+"</tr>";
+    return"<tr>"+base+"<td class='mono'>"+f(s.se,4)+"</td><td class='mono'>"+f(s.t,3)+"</td><td class='mono'>"+fmtP(s.p)+"</td><td>"+slopeSigCell(s.p)+"</td></tr>";
+  }).join("");
+  document.getElementById("tblSimple3").innerHTML=sh+sr;
+}
+
+/* ---------- 刷新 ---------- */
+function refresh(){
+  var M=COMPUTE[curTmpl]();
+  document.getElementById("plotTitle").textContent="交互效应图 · 模板 "+curTmpl;
+  document.getElementById("plotNote").textContent=T_DESC[curTmpl];
+  drawPlot(M);renderData(M);renderStata(M);renderSlopes(M);renderSlope3(M);
+}
+var THREE=["E","F","G","H"];
+document.querySelectorAll(".tab").forEach(function(tb){
+  tb.addEventListener("click",function(){
+    document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");});
+    tb.classList.add("active");curTmpl=tb.dataset.t;
+    ["A","B","C","D","E","F","G","H","I","J"].forEach(function(k){
+      document.getElementById("blk"+k).classList.toggle("on",k===curTmpl);});
+    var is3=THREE.indexOf(curTmpl)>=0, isI=curTmpl==="I";
+    document.getElementById("fwName").style.display=is3?"":"none";
+    document.getElementById("fwLegLo").style.display=is3?"":"none";
+    document.getElementById("fwLegHi").style.display=is3?"":"none";
+    document.getElementById("fwMedX").style.display=isI?"":"none";
+    document.getElementById("fwMedW").style.display=isI?"":"none";
+    refresh();
+  });
+});
+document.querySelectorAll(".theme").forEach(function(th){
+  th.addEventListener("click",function(){
+    document.querySelectorAll(".theme").forEach(function(x){x.classList.remove("sel");});
+    th.classList.add("sel");curTheme=th.dataset.th;refresh();});
+});
+
+/* ---------- 下载 ---------- */
+function svgSource(){var svg=document.querySelector("#plotBox svg");if(!svg)return null;
+  return'<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(svg);}
+document.getElementById("btnSvg").addEventListener("click",function(){
+  var src=svgSource();if(!src)return;
+  var b=new Blob([src],{type:"image/svg+xml;charset=utf-8"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download="interaction_"+curTmpl+"_"+curTheme+".svg";a.click();URL.revokeObjectURL(a.href);});
+document.getElementById("btnPng").addEventListener("click",function(){
+  var src=svgSource();if(!src)return;
+  var img=new Image();
+  img.onload=function(){
+    var svgEl=document.querySelector("#plotBox svg"),vb=svgEl.viewBox.baseVal,sc=2;
+    var cv=document.createElement("canvas");cv.width=vb.width*sc;cv.height=vb.height*sc;
+    var ctx=cv.getContext("2d");ctx.fillStyle="#ffffff";ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    var a=document.createElement("a");a.href=cv.toDataURL("image/png");
+    a.download="interaction_"+curTmpl+"_"+curTheme+".png";a.click();};
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(src);});
+
+/* ---------- 示例 / 清空 ---------- */
+var SAMPLES={
+  A:{Ab1:"0.6",Ab2:"0.4",Ab3:"-0.8",Ab0:"3",AmX:"0",AsX:"1",AmW:"0",AsW:"1",AxLo:"",AxHi:"",AwLo:"0",AwHi:"1",
+     Av1:"0.002",Av3:"0.004",Ac13:"0.003",AN:"150",Ak:"3",lgXLo:"IV = 1",lgXHi:"IV = 2"},
+  B:{Bb1:"-0.4",Bb2:"0.3",Bb3:"0.5",Bb0:"-1.2",BmX:"0",BsX:"1",BwLo:"-1",BwHi:"1"},
+  C:{Cb1:"1.2",Cb2:"0.2",Cb3:"-0.8",Cb0:"1.3",CmX:"0",CsX:"1",CwLo:"-1",CwHi:"1"},
+  D:{Db1:"0.6",Db2:"0.3",Db3:"0.4",Db4:"-0.3",Db5:"0.08",Db0:"3",DmX:"0",DsX:"1",DmW:"0",DsW:"1",Drange:"1.5",DwVals:""},
+  E:{Eb1:"-1.658677",Eb2:"-2.412626",Eb3:"-0.121514",Eb4:"0.787619",Eb5:"0.037802",Eb6:"0.051915",Eb7:"-0.01556",Eb0:"7.853",
+     EmX:"0",EsX:"1",EmZ:"0",EsZ:"0.5",EmV:"0",EsV:"0.5",ExLo:"2",ExHi:"4.5",EzLo:"2",EzHi:"4.5",EvLo:"25",EvHi:"55",
+     EV1:"0.45445103",EV4:"0.0403457127",EV5:"0.000250888401",EV7:"0.0000224187068",
+     Ec14:"-0.131510277",Ec15:"-0.0102042481",Ec17:"0.00295942713",Ec45:"0.00295912747",Ec47:"-0.000909303295",
+     Ec57:"-0.000072861908",EN:"424",Ek:"0",lgV3Lo:"Age 25",lgV3Hi:"Age 55"},
+  F:{Fb1:"0.045",Fb2:"-0.097",Fb3:"-0.27",Fb4:"-0.214",Fb5:"0.359",Fb6:"-0.191",Fb7:"0.72",Fb0:"-1.2",
+     FmX:"0",FsX:"1",FzLo:"0",FzHi:"1",FvLo:"-1",FvHi:"1"},
+  G:{Gb1:"0.3",Gb2:"-1",Gb3:"0.2",Gb4:"-1",Gb5:"0.8",Gb6:"-1.2",Gb7:"0.3",Gb0:"1",
+     GmX:"0",GsX:"1",GzLo:"0",GzHi:"1",GvLo:"-1",GvHi:"1"},
+  H:{Hb1:"0.106",Hb2:"0.17",Hb3:"0.025",Hb4:"0.048",Hb5:"-0.366",Hb6:"0.18",Hb7:"-0.181",Hb8:"0.493",
+     Hb9:"0.025",Hb10:"0.339",Hb11:"-0.461",Hb0:"4",HmX:"0",HsX:"1",Hrange:"1.5",HmZ:"0",HsZ:"1",HmV:"0",HsV:"1",HzVals:"",HvVals:""},
+  I:{Ib1:"0.6",Ib2:"0.4",Ib3:"0.2",Ib4:"-0.8",Ib5:"-0.6",Ib0:"3",ImX:"0",IsX:"1",ImW:"0",IsW:"1",IxVals:"",IwVals:""},
+  J:{Jb1:"2.533",Jb2:"-14.532",Jb0:"0.956",JmX:"0.06",JsX:"0.04",Jrange:"1.5"}
+};
+["nameX","nameW","nameV3","nameY","lgXLo","lgXHi","lgXMed","lgWLo","lgWHi","lgWMed","lgV3Lo","lgV3Hi","lgShow","lgPos","valShow"]
+  .concat(Object.keys(SAMPLES.A),Object.keys(SAMPLES.B),Object.keys(SAMPLES.C),Object.keys(SAMPLES.D),
+          Object.keys(SAMPLES.E),Object.keys(SAMPLES.F),Object.keys(SAMPLES.G),Object.keys(SAMPLES.H),Object.keys(SAMPLES.I),Object.keys(SAMPLES.J))
+  .forEach(function(id){
+    var e=document.getElementById(id);if(!e)return;
+    e.addEventListener("input",refresh);
+    if(e.type==="checkbox"||e.tagName==="SELECT")e.addEventListener("change",refresh);});
+
+document.getElementById("btnReset").addEventListener("click",function(){
+  var s=SAMPLES[curTmpl];Object.keys(s).forEach(function(id){document.getElementById(id).value=s[id];});refresh();});
+document.getElementById("btnClear").addEventListener("click",function(){
+  Object.keys(SAMPLES[curTmpl]).forEach(function(id){document.getElementById(id).value="";});refresh();});
+
+(function(){var d=new Date();
+try{document.getElementById("citeDate").textContent=
+  d.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});}catch(e){document.getElementById("citeDate").textContent=d.toISOString().slice(0,10);}
+})();
+refresh();
+</script>
+</body>
+</html>
